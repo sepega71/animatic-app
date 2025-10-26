@@ -61,6 +61,7 @@ body {
   height: 100px;
   background: var(--accent-gradient);
   border-radius: 10px;
+  margin-top: 1rem;
 }
 
 .copy-button {
