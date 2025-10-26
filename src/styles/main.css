@@ -122,6 +122,10 @@ body {
   flex-wrap: wrap;
 }
 
+.shape-selector .control-button {
+  background-color: transparent;
+}
+
 .presets-grid .control-button {
   flex-grow: 1;
 }
