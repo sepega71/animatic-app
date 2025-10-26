@@ -64,6 +64,13 @@ body {
   margin-top: 1rem;
 }
 
+.demo-block-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 150px; /* Adjust as needed */
+}
+
 .copy-button {
   padding: 0.8rem 1.5rem;
   border: none;
