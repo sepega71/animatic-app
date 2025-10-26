@@ -410,6 +410,8 @@ body[data-theme="light"] .shape-selector button.active {
   margin-bottom: 1rem;
   text-transform: none;
   opacity: 1 !important;
+  position: relative;
+  z-index: 10;
 }
 
 .block-subtitle {
