@@ -122,6 +122,10 @@ body {
   flex-wrap: wrap;
 }
 
+.presets-grid .control-button {
+  flex-grow: 1;
+}
+
 /* Styles for light theme */
 body[data-theme="light"] .tabs button.active {
   color: #fff; /* Keep text white on gradient background */
