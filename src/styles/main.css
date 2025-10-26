@@ -404,6 +404,12 @@ body[data-theme="light"] .shape-selector button.active {
   font-size: 1rem;
 }
 
+.header .block-subtitle {
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+  text-transform: none;
+}
+
 .block-subtitle {
   font-size: 0.9rem;
   margin-top: 1rem;

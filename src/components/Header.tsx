@@ -23,7 +23,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="header">
       <h2 className="block-title">Animation Type</h2>
-      <p className="block-subtitle" style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>
+      <p className="block-subtitle">
         A Telegram bot for creating and previewing CSS animations.
       </p>
       <div className="tabs">
