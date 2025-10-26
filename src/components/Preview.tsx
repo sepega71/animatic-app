@@ -50,18 +50,22 @@ const Preview: React.FC<PreviewProps> = ({
 
   return (
     <main className="preview-area">
-      <div className="shape-selector">
-        {shapes.map(shape => (
-          <button
-            key={shape}
-            className={`control-button ${demoShape === shape ? 'active' : ''}`}
-            onClick={() => setDemoShape(shape)}
-          >
-            {shape}
-          </button>
-        ))}
+      <div className="shape-selector-wrapper">
+        <div className="shape-selector">
+          {shapes.map(shape => (
+            <button
+              key={shape}
+              className={`control-button ${demoShape === shape ? 'active' : ''}`}
+              onClick={() => setDemoShape(shape)}
+            >
+              {shape}
+            </button>
+          ))}
+        </div>
       </div>
-      {renderDemoBlock()}
+      <div className="demo-block-wrapper">
+        {renderDemoBlock()}
+      </div>
     </main>
   );
 };
