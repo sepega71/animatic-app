@@ -23,9 +23,9 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <header className="header">
       <h2 className="block-title">Animation Type</h2>
-      <h4 className="block-subtitle">
+      <div className="block-subtitle">
         A Telegram bot for creating and previewing CSS animations.
-      </h4>
+      </div>
       <div className="tabs">
         {animationTypes.map((type) => (
           <button
