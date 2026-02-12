@@ -1,148 +1,157 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-
-import { useState, useEffect } from 'react';
-import Header from './components/Header';
-import Preview from './components/Preview';
-import Controls from './components/Controls';
-import PresetsGallery from './components/PresetsGallery';
-import { generateAnimationCss } from './core/css-generator';
-import { useTelegram } from './hooks/useTelegram';
-import type { AnimationPreset } from './core/presets';
-
-type AnimationType = 'fade' | 'slide' | 'scale' | 'rotate' | 'bounce' | 'flip';
-// type EasingType = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out'; // No longer needed
-type SlideDirection = 'left' | 'right' | 'up' | 'down';
-type AnimationDirection = 'normal' | 'reverse' | 'alternate' | 'alternate-reverse';
 export type DemoShape = 'square' | 'circle' | 'text';
 
-interface Preset {
-  animationType: AnimationType;
-  duration: number;
-  delay: number;
-  // easing: string; // No longer needed, we use p1 and p2
-  p1?: { x: number, y: number };
-  p2?: { x: number, y: number };
-  slideDirection?: SlideDirection;
-  iterationCount?: string;
-  animationDirection?: AnimationDirection;
-}
+type TeamStats = {
+  possession?: string;
+  shotsOnTarget?: string;
+  shotsOffTarget?: string;
+  corners?: string;
+  yellowCards?: string;
+  redCards?: string;
+  dangerousAttacks?: string;
+  attacks?: string;
+};
+
+type Match = {
+  id: string;
+  league: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  minute: string;
+  status: string;
+  startTime?: string;
+  homeStats?: TeamStats;
+  awayStats?: TeamStats;
+};
+
+type LiveResponse = {
+  fetchedAt: string;
+  source: string;
+  count: number;
+  matches: Match[];
+};
+
+const API_URL = import.meta.env.VITE_LIVE_API_URL ?? '/api/live';
+
+const fmt = (value?: string) => value ?? '—';
 
 function App() {
-  const { tg, saveData, readData } = useTelegram();
-  const [animationType, setAnimationType] = useState<AnimationType>('fade');
-  const [duration, setDuration] = useState(0.6);
-  const [delay, setDelay] = useState(0);
-  const [p1, setP1] = useState({ x: 0.25, y: 0.1 });
-  const [p2, setP2] = useState({ x: 0.25, y: 1.0 });
-  const [slideDirection, setSlideDirection] = useState<SlideDirection>('left');
-  const [iterationCount, setIterationCount] = useState<string>('1');
-  const [animationDirection, setAnimationDirection] = useState<AnimationDirection>('normal');
-  const [demoShape, setDemoShape] = useState<DemoShape>('square');
+  const [data, setData] = useState<LiveResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const onThemeChanged = () => {
-      document.body.setAttribute('data-theme', tg.colorScheme);
-    };
+  const loadMatches = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
 
-    tg.onEvent('themeChanged', onThemeChanged);
-    onThemeChanged(); // Set initial theme
-
-    readData().then(preset => {
-      if (preset) {
-        const p = preset as Preset;
-        setAnimationType(p.animationType);
-        setDuration(p.duration);
-        setDelay(p.delay);
-        if (p.p1 && p.p2) {
-          setP1(p.p1);
-          setP2(p.p2);
-        }
-        if (p.slideDirection) {
-          setSlideDirection(p.slideDirection);
-        }
-        if (p.iterationCount) {
-          setIterationCount(p.iterationCount);
-        }
-        if (p.animationDirection) {
-          setAnimationDirection(p.animationDirection);
-        }
+    try {
+      const response = await fetch(API_URL, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    });
 
-    // Cleanup event listener on component unmount
-    return () => {
-      tg.offEvent('themeChanged', onThemeChanged);
-    };
-  }, [tg, readData]);
+      const payload = (await response.json()) as LiveResponse;
+      setData(payload);
+    } catch (requestError) {
+      const message = requestError instanceof Error ? requestError.message : 'Неизвестная ошибка';
+      setError(`Не удалось получить live-матчи: ${message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    saveData({ animationType, duration, delay, p1, p2, slideDirection, iterationCount, animationDirection });
-  }, [animationType, duration, delay, p1, p2, slideDirection, iterationCount, animationDirection, saveData]);
+    void loadMatches();
+    const id = setInterval(() => {
+      void loadMatches();
+    }, 30_000);
 
-  const generatedCss = generateAnimationCss({
-    type: animationType,
-    direction: slideDirection,
-    duration,
-    delay,
-    easing: `cubic-bezier(${p1.x.toFixed(2)}, ${p1.y.toFixed(2)}, ${p2.x.toFixed(2)}, ${p2.y.toFixed(2)})`,
-    iterationCount,
-    animationDirection,
-  });
+    return () => clearInterval(id);
+  }, [loadMatches]);
 
-  const handleSelectPreset = (preset: AnimationPreset) => {
-    const { type, duration, delay, direction, iterationCount, animationDirection, p1: presetP1, p2: presetP2 } = preset.params;
-    setAnimationType(type);
-    setDuration(duration);
-    setDelay(delay);
-    if (presetP1 && presetP2) {
-      setP1(presetP1);
-      setP2(presetP2);
+  const content = useMemo(() => {
+    if (isLoading && !data) {
+      return <p className="state">Загружаем реальные live-матчи…</p>;
     }
-    if (direction) {
-      setSlideDirection(direction);
+
+    if (error) {
+      return (
+        <div className="state error">
+          <p>{error}</p>
+          <button type="button" onClick={() => void loadMatches()}>Повторить</button>
+        </div>
+      );
     }
-    if (iterationCount) {
-      setIterationCount(iterationCount);
+
+    if (!data || data.matches.length === 0) {
+      return <p className="state">Сейчас нет доступных онлайн матчей.</p>;
     }
-    if (animationDirection) {
-      setAnimationDirection(animationDirection);
-    }
-  };
+
+    return (
+      <div className="matches-grid">
+        {data.matches.map((match) => (
+          <article key={match.id} className="match-card">
+            <header>
+              <p className="league">{match.league}</p>
+              <p className="minute">{match.minute} · {match.status}</p>
+            </header>
+
+            <div className="scoreboard">
+              <div>
+                <p className="team">{match.homeTeam}</p>
+                <p className="team">{match.awayTeam}</p>
+              </div>
+              <div className="score">
+                <p>{match.homeScore}</p>
+                <p>{match.awayScore}</p>
+              </div>
+            </div>
+
+            <dl className="stats-table">
+              <div>
+                <dt>Владение</dt>
+                <dd>{fmt(match.homeStats?.possession)} : {fmt(match.awayStats?.possession)}</dd>
+              </div>
+              <div>
+                <dt>Удары в створ</dt>
+                <dd>{fmt(match.homeStats?.shotsOnTarget)} : {fmt(match.awayStats?.shotsOnTarget)}</dd>
+              </div>
+              <div>
+                <dt>Угловые</dt>
+                <dd>{fmt(match.homeStats?.corners)} : {fmt(match.awayStats?.corners)}</dd>
+              </div>
+              <div>
+                <dt>Жёлтые карточки</dt>
+                <dd>{fmt(match.homeStats?.yellowCards)} : {fmt(match.awayStats?.yellowCards)}</dd>
+              </div>
+            </dl>
+
+            {match.startTime ? <p className="start-time">Старт: {match.startTime}</p> : null}
+          </article>
+        ))}
+      </div>
+    );
+  }, [data, error, isLoading, loadMatches]);
 
   return (
-    <div className="app-container">
-      <Header
-        animationType={animationType}
-        setAnimationType={setAnimationType}
-        slideDirection={slideDirection}
-        setSlideDirection={setSlideDirection}
-      />
-      <PresetsGallery onSelectPreset={handleSelectPreset} />
-      <Preview
-        animationType={animationType}
-        slideDirection={slideDirection}
-        demoShape={demoShape}
-        setDemoShape={setDemoShape}
-      />
-      <Controls
-        duration={duration}
-        setDuration={setDuration}
-        delay={delay}
-        setDelay={setDelay}
-        p1={p1}
-        p2={p2}
-        onBezierChange={(np1: { x: number, y: number }, np2: { x: number, y: number }) => {
-          setP1(np1);
-          setP2(np2);
-        }}
-        iterationCount={iterationCount}
-        setIterationCount={setIterationCount}
-        animationDirection={animationDirection}
-        setAnimationDirection={setAnimationDirection}
-        generatedCss={generatedCss}
-      />
-      <style>{generatedCss}</style>
-    </div>
+    <main className="live-app">
+      <div className="headline">
+        <h1>Live футбол · BetLab</h1>
+        <p>Реальный парсинг сайта с автообновлением каждые 30 секунд.</p>
+      </div>
+
+      <div className="actions">
+        <button type="button" onClick={() => void loadMatches()} disabled={isLoading}>
+          {isLoading ? 'Обновляем…' : 'Обновить'}
+        </button>
+        <p>{data ? `Матчей онлайн: ${data.count}` : 'Матчей онлайн: —'}</p>
+      </div>
+
+      {content}
+    </main>
   );
 }
 
