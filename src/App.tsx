@@ -30,8 +30,15 @@ type Match = {
 type LiveResponse = {
   fetchedAt: string;
   source: string;
+  transportSource?: string;
   count: number;
   matches: Match[];
+};
+
+type ApiError = {
+  error?: string;
+  details?: string;
+  hint?: string;
 };
 
 const API_URL = import.meta.env.VITE_LIVE_API_URL ?? '/api/live';
@@ -49,12 +56,16 @@ function App() {
 
     try {
       const response = await fetch(API_URL, { cache: 'no-store' });
+      const text = await response.text();
+      const parsed = text ? (JSON.parse(text) as LiveResponse | ApiError) : null;
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const details = parsed && 'details' in parsed ? parsed.details : undefined;
+        const hint = parsed && 'hint' in parsed ? parsed.hint : undefined;
+        throw new Error([`HTTP ${response.status}`, details, hint].filter(Boolean).join(' · '));
       }
 
-      const payload = (await response.json()) as LiveResponse;
-      setData(payload);
+      setData(parsed as LiveResponse);
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'Неизвестная ошибка';
       setError(`Не удалось получить live-матчи: ${message}`);
@@ -81,6 +92,7 @@ function App() {
       return (
         <div className="state error">
           <p>{error}</p>
+          <p>Убедитесь, что backend запущен: <code>npm run start:api</code></p>
           <button type="button" onClick={() => void loadMatches()}>Повторить</button>
         </div>
       );
@@ -149,6 +161,8 @@ function App() {
         </button>
         <p>{data ? `Матчей онлайн: ${data.count}` : 'Матчей онлайн: —'}</p>
       </div>
+
+      {data?.transportSource ? <p className="source">Источник загрузки: {data.transportSource}</p> : null}
 
       {content}
     </main>

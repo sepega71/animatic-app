@@ -2,6 +2,7 @@ import http from 'node:http';
 
 const PORT = Number(process.env.PORT || 8787);
 const TARGET_URL = 'https://betlab.club/live';
+const MIRROR_URL = 'https://r.jina.ai/http://betlab.club/live';
 
 const sanitize = (value) => {
   if (typeof value !== 'string') return undefined;
@@ -92,6 +93,40 @@ function sendJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+async function fetchHtml(url) {
+  const response = await fetch(url, {
+    redirect: 'follow',
+    headers: {
+      'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      accept: 'text/html,application/xhtml+xml',
+      'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+      pragma: 'no-cache',
+      'cache-control': 'no-cache',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} from ${url}`);
+  }
+
+  return response.text();
+}
+
+async function loadSourceHtml() {
+  const attempts = [];
+
+  for (const url of [TARGET_URL, MIRROR_URL]) {
+    try {
+      const html = await fetchHtml(url);
+      return { html, usedUrl: url, attempts };
+    } catch (error) {
+      attempts.push(`${url} -> ${error instanceof Error ? error.message : 'unknown error'}`);
+    }
+  }
+
+  throw new Error(attempts.join(' | '));
+}
+
 const server = http.createServer(async (req, res) => {
   if (!req.url) {
     sendJson(res, 404, { error: 'Not found' });
@@ -108,28 +143,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && req.url.startsWith('/api/health')) {
+    sendJson(res, 200, { ok: true, service: 'live-proxy', target: TARGET_URL });
+    return;
+  }
+
   if (req.method === 'GET' && req.url.startsWith('/api/live')) {
     try {
-      const response = await fetch(TARGET_URL, {
-        headers: {
-          'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-          accept: 'text/html,application/xhtml+xml',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Target responded with ${response.status}`);
-      }
-
-      const html = await response.text();
+      const { html, usedUrl, attempts } = await loadSourceHtml();
       const payload = extractJsonPayload(html);
       const matches = normalizeMatches(payload);
+
+      if (matches.length === 0) {
+        throw new Error('HTML получен, но не найдены данные матчей в JSON состоянии страницы');
+      }
 
       sendJson(res, 200, {
         fetchedAt: new Date().toISOString(),
         source: TARGET_URL,
+        transportSource: usedUrl,
         count: matches.length,
         matches,
+        attempts,
       });
       return;
     } catch (error) {
@@ -138,6 +173,7 @@ const server = http.createServer(async (req, res) => {
         error: 'Failed to parse target website in real time',
         details,
         source: TARGET_URL,
+        hint: 'Проверьте доступность betlab.club с вашего сервера. Если блокируется — используйте сервер/VPS с другим IP или добавьте рабочий прокси.',
       });
       return;
     }
