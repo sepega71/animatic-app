@@ -93,8 +93,8 @@ function normalizeOneMatch(item, index) {
   return {
     id: String(pick(item, 'id', 'matchId', 'eventId') ?? `${sanitize(String(pick(item, 'homeTeam', 'home_name') ?? 'home'))}-${sanitize(String(pick(item, 'awayTeam', 'away_name') ?? 'away'))}-${index}`),
     league: sanitize(String(pick(item, 'league', 'tournament', 'championship', 'competition', 'liga', 'leagueName') ?? 'Неизвестная лига')),
-    homeTeam: sanitize(String(pick(item, 'homeTeam', 'home_name', 'team1Name') ?? pick(homeObj, 'name', 'title', 'teamName') ?? 'Home')),
-    awayTeam: sanitize(String(pick(item, 'awayTeam', 'away_name', 'team2Name') ?? pick(awayObj, 'name', 'title', 'teamName') ?? 'Away')),
+    homeTeam: sanitize(String(pick(item, 'homeTeam', 'home_name', 'homeName', 'team1Name', 'team1') ?? pick(homeObj, 'name', 'title', 'teamName') ?? 'Home')),
+    awayTeam: sanitize(String(pick(item, 'awayTeam', 'away_name', 'awayName', 'team2Name', 'team2') ?? pick(awayObj, 'name', 'title', 'teamName') ?? 'Away')),
     homeScore,
     awayScore,
     minute: sanitize(String(pick(item, 'minute', 'timer', 'time', 'clock', 'matchTime') ?? 'LIVE')),
@@ -125,9 +125,38 @@ function normalizeOneMatch(item, index) {
 
 function isLikelyMatch(item) {
   if (!item || typeof item !== 'object') return false;
-  const hasTeams = ['homeTeam', 'awayTeam', 'team1', 'team2', 'home_name', 'away_name'].some((key) => item[key]);
-  const hasScoreOrTime = ['score', 'scores', 'minute', 'timer', 'status', 'homeScore', 'awayScore'].some((key) => item[key] !== undefined);
-  return hasTeams || hasScoreOrTime;
+
+  const hasTeams = [
+    'homeTeam',
+    'awayTeam',
+    'homeName',
+    'awayName',
+    'team1',
+    'team2',
+    'home_name',
+    'away_name',
+    'home',
+    'away',
+  ].some((key) => item[key]);
+
+  const homeNestedName = pick(item?.home ?? {}, 'name', 'title', 'teamName');
+  const awayNestedName = pick(item?.away ?? {}, 'name', 'title', 'teamName');
+  const hasNestedTeams = Boolean(homeNestedName || awayNestedName);
+
+  const hasScoreOrTime = [
+    'score',
+    'scores',
+    'minute',
+    'timer',
+    'time',
+    'clock',
+    'status',
+    'state',
+    'homeScore',
+    'awayScore',
+  ].some((key) => item[key] !== undefined);
+
+  return hasTeams || hasNestedTeams || hasScoreOrTime;
 }
 
 function findArraysInObject(root) {
