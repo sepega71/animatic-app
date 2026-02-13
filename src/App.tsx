@@ -72,6 +72,12 @@ function App() {
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : 'Неизвестная ошибка';
       setError(`Не удалось получить live-матчи: ${message}`);
+      setData((current) => current ? {
+        ...current,
+        stale: true,
+        warning: 'Не удалось обновить данные, отображается последний загруженный снимок.',
+        staleReason: message,
+      } : current);
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +97,7 @@ function App() {
       return <p className="state">Загружаем реальные live-матчи…</p>;
     }
 
-    if (error) {
+    if (error && !data) {
       return (
         <div className="state error">
           <p>{error}</p>
@@ -167,7 +173,10 @@ function App() {
 
       {data?.transportSource ? <p className="source">Источник загрузки: {data.transportSource}</p> : null}
       {data?.stale ? (
-        <p className="source">{data.warning ?? 'Показаны последние успешные данные.'}</p>
+        <p className="source">
+          {data.warning ?? 'Показаны последние успешные данные.'}
+          {data.staleReason ? ` (${data.staleReason})` : ''}
+        </p>
       ) : null}
 
       {content}

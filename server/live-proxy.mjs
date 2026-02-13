@@ -359,11 +359,17 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      sendJson(res, 502, {
-        error: 'Failed to parse target website in real time',
-        details,
+      sendJson(res, 200, {
+        fetchedAt: new Date().toISOString(),
         source: TARGET_URL,
-        hint: 'Проверьте доступность betlab.club и api-эндпоинтов betlab.club с вашего сервера. Если блокируется — используйте сервер/VPS с другим IP или прокси.',
+        transportSource: null,
+        count: 0,
+        matches: [],
+        stale: true,
+        warning: 'Источник live-данных временно недоступен. Возвращен безопасный пустой ответ.',
+        staleReason: details,
+        attempts: [],
+        debug: [],
       });
       return;
     }
