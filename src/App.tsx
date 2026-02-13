@@ -107,6 +107,10 @@ function App() {
       );
     }
 
+    if (data?.stale && data.matches.length === 0) {
+      return <p className="state error">Источник live-данных временно недоступен. Попробуйте позже или проверьте backend/proxy.</p>;
+    }
+
     if (!data || data.matches.length === 0) {
       return <p className="state">Сейчас нет доступных онлайн матчей.</p>;
     }

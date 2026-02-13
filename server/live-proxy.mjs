@@ -290,10 +290,16 @@ async function fetchHtml(url) {
   return response.text();
 }
 
+const EXTRA_TARGETS = (process.env.LIVE_PROXY_TARGETS ?? '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+
 async function loadSourceHtml() {
   const attempts = [];
+  const targets = [TARGET_URL, MIRROR_URL, ...EXTRA_TARGETS];
 
-  for (const url of [TARGET_URL, MIRROR_URL]) {
+  for (const url of targets) {
     try {
       const html = await fetchHtml(url);
       return { html, usedUrl: url, attempts };
@@ -390,17 +396,11 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      sendJson(res, 200, {
-        fetchedAt: new Date().toISOString(),
+      sendJson(res, 502, {
+        error: 'Failed to parse target website in real time',
+        details,
         source: TARGET_URL,
-        transportSource: null,
-        count: 0,
-        matches: [],
-        stale: true,
-        warning: 'Источник live-данных временно недоступен. Возвращен безопасный пустой ответ.',
-        staleReason: details,
-        attempts: [],
-        debug: [],
+        hint: 'Источник недоступен с сервера парсера. Укажите рабочий прокси через LIVE_PROXY_TARGETS (список URL через запятую) или запустите парсер на сервере/VPS с доступом к betlab.club.',
       });
       return;
     }
