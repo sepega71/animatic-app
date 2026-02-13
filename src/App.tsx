@@ -33,6 +33,9 @@ type LiveResponse = {
   transportSource?: string;
   count: number;
   matches: Match[];
+  stale?: boolean;
+  warning?: string;
+  staleReason?: string;
 };
 
 type ApiError = {
@@ -163,6 +166,9 @@ function App() {
       </div>
 
       {data?.transportSource ? <p className="source">Источник загрузки: {data.transportSource}</p> : null}
+      {data?.stale ? (
+        <p className="source">{data.warning ?? 'Показаны последние успешные данные.'}</p>
+      ) : null}
 
       {content}
     </main>

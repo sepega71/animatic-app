@@ -5,6 +5,9 @@ const TARGET_URL = 'https://betlab.club/live';
 const TARGET_ORIGIN = 'https://betlab.club';
 const MIRROR_URL = 'https://r.jina.ai/http://betlab.club/live';
 
+
+let lastSuccessfulSnapshot = null;
+
 const sanitize = (value) => {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.replace(/\s+/g, ' ').trim();
@@ -330,7 +333,7 @@ const server = http.createServer(async (req, res) => {
         throw new Error('HTML получен, но не найдены данные матчей ни во встроенном JSON, ни в API-эндпоинтах страницы');
       }
 
-      sendJson(res, 200, {
+      const payload = {
         fetchedAt: new Date().toISOString(),
         source: TARGET_URL,
         transportSource: usedUrl,
@@ -338,10 +341,24 @@ const server = http.createServer(async (req, res) => {
         matches,
         attempts,
         debug,
-      });
+      };
+
+      lastSuccessfulSnapshot = payload;
+      sendJson(res, 200, payload);
       return;
     } catch (error) {
       const details = error instanceof Error ? error.message : 'Unknown parser error';
+
+      if (lastSuccessfulSnapshot) {
+        sendJson(res, 200, {
+          ...lastSuccessfulSnapshot,
+          stale: true,
+          warning: 'Возвращены последние успешные данные: источник временно недоступен.',
+          staleReason: details,
+        });
+        return;
+      }
+
       sendJson(res, 502, {
         error: 'Failed to parse target website in real time',
         details,
