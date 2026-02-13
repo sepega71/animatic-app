@@ -34,13 +34,11 @@ const pick = (obj, ...keys) => {
 };
 
 function extractJsonPayload(html) {
+  const jsonCandidates = [];
+
   const next = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i);
   if (next?.[1]) {
-    try {
-      return JSON.parse(next[1]);
-    } catch {
-      return null;
-    }
+    jsonCandidates.push(next[1]);
   }
 
   const patterns = [
@@ -52,11 +50,15 @@ function extractJsonPayload(html) {
   for (const pattern of patterns) {
     const match = html.match(pattern);
     if (match?.[1]) {
-      try {
-        return JSON.parse(match[1]);
-      } catch {
-        return null;
-      }
+      jsonCandidates.push(match[1]);
+    }
+  }
+
+  for (const candidate of jsonCandidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // try next candidate
     }
   }
 
