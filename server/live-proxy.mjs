@@ -90,8 +90,8 @@ function normalizeOneMatch(item, index) {
   return {
     id: String(pick(item, 'id', 'matchId', 'eventId') ?? `${sanitize(String(pick(item, 'homeTeam', 'home_name') ?? 'home'))}-${sanitize(String(pick(item, 'awayTeam', 'away_name') ?? 'away'))}-${index}`),
     league: sanitize(String(pick(item, 'league', 'tournament', 'championship', 'competition', 'liga', 'leagueName') ?? 'Неизвестная лига')),
-    homeTeam: sanitize(String(pick(item, 'homeTeam', 'home_name', 'team1Name', 'home') ?? pick(homeObj, 'name', 'title', 'teamName') ?? 'Home')),
-    awayTeam: sanitize(String(pick(item, 'awayTeam', 'away_name', 'team2Name', 'away') ?? pick(awayObj, 'name', 'title', 'teamName') ?? 'Away')),
+    homeTeam: sanitize(String(pick(item, 'homeTeam', 'home_name', 'team1Name') ?? pick(homeObj, 'name', 'title', 'teamName') ?? 'Home')),
+    awayTeam: sanitize(String(pick(item, 'awayTeam', 'away_name', 'team2Name') ?? pick(awayObj, 'name', 'title', 'teamName') ?? 'Away')),
     homeScore,
     awayScore,
     minute: sanitize(String(pick(item, 'minute', 'timer', 'time', 'clock', 'matchTime') ?? 'LIVE')),
